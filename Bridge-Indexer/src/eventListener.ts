@@ -118,49 +118,6 @@ async function handleDepositEvent(
   }
 }
 
-// Function to listen for events on both chains
-async function startListening() {
-  console.log("🎧 Listening for Deposit events...");
-
-  try {
-    console.log("Setting up Holesky contract listener...");
-    holeskyBridgeContract.on("Deposit", async (token, from, to, amount, nonce, event) => {
-      try {
-        console.log("Event detected on Holesky:", { token, from, to, amount: amount.toString(), nonce: nonce.toString() });
-        const txHash = event && event.transactionHash ? event.transactionHash : "unknown";
-        await handleDepositEvent(token, from, to, amount, nonce, "holesky", txHash);
-        
-        if (event && event.transactionHash) {
-          await waitForConfirmation(event.transactionHash, holeskyProvider);
-        }
-      } catch (err) {
-        console.error("Error processing Holesky event:", err);
-      }
-    });
-
-    console.log("Setting up Target chain contract listener...");
-    targetBridgeContract.on("Deposit", async (token, from, to, amount, nonce, event) => {
-      try {
-        console.log("Event detected on Target Chain:", { token, from, to, amount: amount.toString(), nonce: nonce.toString() });
-        const txHash = event && event.transactionHash ? event.transactionHash : "unknown";
-        await handleDepositEvent(token, from, to, amount, nonce, "target_chain", txHash);
-        
-        if (event && event.transactionHash) {
-          await waitForConfirmation(event.transactionHash, targetProvider);
-        }
-      } catch (err) {
-        console.error("Error processing Target Chain event:", err);
-      }
-    });
-
-    console.log("✅ All listeners are now active!");
-  } catch (error) {
-    console.error("❌ Error setting up listeners:", error);
-    throw error;
-  }
-}
-
-// More robust alternative method for event listening with HTTP
 async function startPollingEvents() {
   console.log("🔄 Starting event polling...");
 
@@ -298,4 +255,4 @@ async function startPollingEvents() {
 }
 
 // Export functions
-export { startListening, startPollingEvents };
+export {startPollingEvents };

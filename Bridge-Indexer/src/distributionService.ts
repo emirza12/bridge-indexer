@@ -315,12 +315,12 @@ async function processPendingDeposits() {
               deposit.from
             );
             
-            console.log(`✅ Successfully processed deposit with nonce ${deposit.nonce}`);
+            console.log(`✅ Successfully processed distribution with nonce ${deposit.nonce}`);
           } else {
-            console.log(`⏳ Deposit ${deposit.nonce} doesn't have enough confirmations yet (needs ${requiredConfirmations})`);
+            console.log(`⏳ Distribution ${deposit.nonce} doesn't have enough confirmations yet (needs ${requiredConfirmations})`);
           }
         } else {
-          console.log(`❓ Deposit ${deposit.nonce} is missing transaction hash, cannot verify confirmations`);
+          console.log(`❓ Distribution ${deposit.nonce} is missing transaction hash, cannot verify confirmations`);
           console.log(`Marking as processed to avoid indefinite retries`);
           
           // Mark as processed to avoid infinite retries
