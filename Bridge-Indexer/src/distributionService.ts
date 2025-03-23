@@ -15,7 +15,6 @@ function createProviders() {
   }
 
   // Only use HTTP providers for reliable connections
-  console.log("Connecting via HTTP RPC...");
   const holeskyProvider = new ethers.JsonRpcProvider(process.env.HOLESKY_RPC_URL);
   const targetProvider = new ethers.JsonRpcProvider(process.env.TARGET_CHAIN_RPC_URL);
   return { holeskyProvider, targetProvider };
@@ -341,8 +340,8 @@ async function processPendingDeposits() {
 
 // Function to start the distribution service
 async function startDistributionService(interval = 60000) {
-  console.log("🚀 Starting automatic distribution service");
-  console.log(`Using confirmation thresholds: Holesky=${holeskyConfirmationBlocks}, Target Chain=${targetChainConfirmationBlocks}`);
+  // Log only the threshold information without duplicating the "Starting" message
+  console.log(`Distribution service using confirmation thresholds: Holesky=${holeskyConfirmationBlocks}, Target Chain=${targetChainConfirmationBlocks}`);
   
   // Immediately process any pending deposits
   await processPendingDeposits();

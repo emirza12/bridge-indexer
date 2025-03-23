@@ -7,7 +7,11 @@ import { startDistributionService } from "./distributionService";
 // Maximum number of retry attempts
 const MAX_RETRY_ATTEMPTS = 5;
 // Delay between retry attempts in milliseconds
-const RETRY_DELAY = 10000;
+const RETRY_DELAY = 10000;  // 10 seconds between retries
+
+// To track if services are already running
+let isPollingStarted = false;
+let isDistributionStarted = false;
 
 const startApp = async (retryAttempt = 0) => {
   try {
@@ -19,27 +23,42 @@ const startApp = async (retryAttempt = 0) => {
     await sequelize.sync({ force: true });
     console.log("✅ Models synchronized and tables recreated");
 
-    // Use only event polling method (more robust for HTTP connections)
-    console.log("Starting event polling...");
-    startPollingEvents().catch((err) => {
-      console.error("❌ Error during event polling:", err);
-      // Restart polling on error
-      setTimeout(() => startPollingEvents(), RETRY_DELAY);
-    });
+    // Start event polling if not already running
+    if (!isPollingStarted) {
+      console.log("Starting event polling service...");
+      isPollingStarted = true;
+      startPollingEvents().catch((err) => {
+        console.error("❌ Error during event polling:", err);
+        isPollingStarted = false;
+        // Restart polling on error
+        setTimeout(() => startPollingEvents(), RETRY_DELAY);
+      });
+    }
     
-    // Start distribution service to automatically process deposits
-    console.log("Starting automatic distribution service...");
-    startDistributionService(60000).catch((err) => {
-      console.error("❌ Error in distribution service:", err);
-      // Restart service on error
-      setTimeout(() => startDistributionService(60000), RETRY_DELAY);
-    });
+    // Start distribution service if not already running
+    if (!isDistributionStarted) {
+      console.log("Starting automatic distribution service...");
+      isDistributionStarted = true;
+      startDistributionService(60000).catch((err) => {
+        console.error("❌ Error in distribution service:", err);
+        isDistributionStarted = false;
+        // Restart service on error
+        setTimeout(() => startDistributionService(60000), RETRY_DELAY);
+      });
+    }
     
     console.log("🚀 Indexer successfully started!");
     
     // Clean shutdown handling
     process.on('SIGINT', async () => {
       console.log('Shutting down indexer...');
+      try {
+        // Close database connection cleanly
+        await sequelize.close();
+        console.log('Database connection closed.');
+      } catch (err) {
+        console.error('Error while closing database connection:', err);
+      }
       process.exit(0);
     });
   } catch (error) {

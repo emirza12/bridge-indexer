@@ -24,7 +24,7 @@ forge script script/DeployTokenBridge.s.sol:DeployTokenBridge --rpc-url $HOLESKY
 
 
 
-### Target Network
+### Target Network (sepolia)
 follow the exact same steps :
 
 ```bash

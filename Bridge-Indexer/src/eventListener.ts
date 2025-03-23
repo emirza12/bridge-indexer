@@ -14,7 +14,6 @@ function createProviders() {
   }
 
   // Only use HTTP providers to avoid WebSocket authentication issues
-  console.log("Connecting via HTTP RPC...");
   const holeskyProvider = new ethers.JsonRpcProvider(process.env.HOLESKY_RPC_URL);
   const targetProvider = new ethers.JsonRpcProvider(process.env.TARGET_CHAIN_RPC_URL);
   return { holeskyProvider, targetProvider };
@@ -27,10 +26,6 @@ if (!process.env.HOLESKY_BRIDGE_ADDRESS || !process.env.TARGET_CHAIN_BRIDGE_ADDR
 
 // Create providers
 const { holeskyProvider, targetProvider } = createProviders();
-
-// Make sure the ABI is correctly loaded
-console.log("ABI successfully loaded with", TokenBridgeABI.length, "elements");
-console.log("Using HTTP connections");
 
 // Contract addresses on respective chains
 const holeskyBridgeContract = new ethers.Contract(
@@ -84,23 +79,12 @@ async function handleDepositEvent(
     transactionHash,
   });
 
-  // Log additional information about the recipient
-  console.log(`Deposit details:
-  - Token: ${token}
-  - From (sender): ${from}
-  - To (recipient): ${to} 
-  - Amount: ${amount.toString()}
-  - Nonce: ${nonce.toString()}
-  - Chain ID: ${chainId}
-  - Transaction: ${transactionHash}
-  `);
-
   try {
     // Store the event - composite unique index will prevent duplicates
     await DepositEvent.create({
       token,
       from,
-      to,  // Le destinataire qui va recevoir les tokens sur la chaîne de destination
+      to,  // Recipient who will receive tokens on the destination chain
       amount: amount.toString(),
       nonce: nonce.toString(),
       chainId,
@@ -119,9 +103,7 @@ async function handleDepositEvent(
 }
 
 async function startPollingEvents() {
-  console.log("🔄 Starting event polling...");
-
-  // Initial block numbers
+  // Get initial block numbers without duplicating "Starting" message
   let holeskyLastBlock = await holeskyProvider.getBlockNumber();
   let targetLastBlock = await targetProvider.getBlockNumber();
 
@@ -162,7 +144,9 @@ async function startPollingEvents() {
           endBlock
         );
 
-        console.log(`Found ${holeskyLogs.length} events in Holesky blocks`);
+        if (holeskyLogs.length > 0) {
+          console.log(`Found ${holeskyLogs.length} events in Holesky blocks`);
+        }
 
         // Process events
         for (const log of holeskyLogs) {
@@ -175,14 +159,6 @@ async function startPollingEvents() {
             
             if (parsedLog && parsedLog.name === 'Deposit' && parsedLog.args) {
               const { token, from, to, amount, nonce } = parsedLog.args;
-              
-              console.log("Event detected on Holesky:", { 
-                token, 
-                from, 
-                to, 
-                amount: amount.toString(), 
-                nonce: nonce.toString() 
-              });
               
               // Include transaction hash with the event
               const txHash = log.transactionHash || "unknown";
@@ -212,7 +188,9 @@ async function startPollingEvents() {
           endBlock
         );
 
-        console.log(`Found ${targetLogs.length} events in Target blocks`);
+        if (targetLogs.length > 0) {
+          console.log(`Found ${targetLogs.length} events in Target blocks`);
+        }
 
         for (const log of targetLogs) {
           try {
@@ -224,14 +202,6 @@ async function startPollingEvents() {
             
             if (parsedLog && parsedLog.name === 'Deposit' && parsedLog.args) {
               const { token, from, to, amount, nonce } = parsedLog.args;
-              
-              console.log("Event detected on Target Chain:", { 
-                token, 
-                from, 
-                to, 
-                amount: amount.toString(), 
-                nonce: nonce.toString() 
-              });
               
               // Include transaction hash with the event
               const txHash = log.transactionHash || "unknown";

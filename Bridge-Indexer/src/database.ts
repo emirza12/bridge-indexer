@@ -12,14 +12,8 @@ const sequelize = new Sequelize(process.env.DATABASE_URL as string, {
   },
 });
 
-// Test database connection
-sequelize.authenticate()
-  .then(() => {
-    console.log('Successfully connected to PostgreSQL database.');
-  })
-  .catch((err) => {
-    console.error('Unable to connect to database:', err);
-  });
+// Connection test will be performed in index.ts
+// We're removing it here to avoid duplicate logs
 
 // Export sequelize as default export
 export default sequelize;
