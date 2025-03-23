@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import "../src/TokenBridge.sol";
+import "../src/TestToken.sol";
 
 contract DeployTokenBridge is Script {
     function run() external {
@@ -16,5 +17,13 @@ contract DeployTokenBridge is Script {
         vm.stopBroadcast();
         
         console.log("TokenBridge deployed to:", address(bridge));
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        TestToken token = new TestToken();
+        
+        vm.stopBroadcast();
+        
+        console.log("TestToken deployed to:", address(token));
     }
 }
