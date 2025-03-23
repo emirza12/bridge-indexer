@@ -85,8 +85,8 @@ async function hasEnoughConfirmations(txHash: string, provider: ethers.Provider,
 // Function to check if a token is supported on the bridge contract
 async function isTokenSupported(token: string, contract: ethers.Contract): Promise<boolean> {
   try {
-    // Vérifier si le contrat a une fonction pour vérifier les tokens supportés
-    // Si le contrat n'a pas cette fonction, nous supposerons que le token n'est pas supporté
+    // Check if the contract has a function to verify supported tokens
+    // If the contract doesn't have this function, we'll assume the token is not supported
     if (contract.isTokenSupported) {
       return await contract.isTokenSupported(token);
     }
@@ -109,8 +109,8 @@ async function addSupportedToken(token: string, contract: ethers.Contract): Prom
     return true;
   } catch (error) {
     console.error(`Failed to add token as supported:`, error);
-    // Si l'erreur est "OwnableUnauthorizedAccount" ou similaire, cela signifie que l'utilisateur 
-    // n'est pas le propriétaire du contrat et n'a pas les droits pour ajouter un token
+    // If the error is "OwnableUnauthorizedAccount" or similar, it means the user
+    // is not the owner of the contract and doesn't have the rights to add a token
     console.log(`Please manually add the token ${token} as supported on the contract at ${contract.target}`);
     return false;
   }
@@ -118,23 +118,23 @@ async function addSupportedToken(token: string, contract: ethers.Contract): Prom
 
 // Function to get the corresponding token on the destination chain
 function getCorrespondingToken(sourceToken: string, sourceChain: string): string {
-  // Lire les adresses des tokens depuis les variables d'environnement
+  // Read token addresses from environment variables
   const holeskyToken = process.env.HOLESKY_TEST_TOKEN;
   const targetToken = process.env.TARGET_CHAIN_TEST_TOKEN;
   
   if (!holeskyToken || !targetToken) {
     console.warn("⚠️ Token addresses are not defined in .env file (HOLESKY_TEST_TOKEN, TARGET_CHAIN_TEST_TOKEN)");
-    // Si les adresses ne sont pas définies, on utilise l'adresse du token source
-    // Ce n'est pas idéal, mais c'est mieux que rien pour le développement
+    // If addresses are not defined, use the source token address
+    // This is not ideal, but it's better than nothing for development
     return sourceToken;
   }
   
-  // Si le dépôt vient de Holesky, utiliser l'adresse du token sur la chaîne cible
+  // If the deposit comes from Holesky, use the token address on the target chain
   if (sourceChain === "holesky") {
     console.log(`Mapping token from Holesky (${sourceToken}) to Target chain (${targetToken})`);
     return targetToken;
   } 
-  // Si le dépôt vient de la chaîne cible, utiliser l'adresse du token sur Holesky
+  // If the deposit comes from the target chain, use the token address on Holesky
   else {
     console.log(`Mapping token from Target chain (${sourceToken}) to Holesky (${holeskyToken})`);
     return holeskyToken;
@@ -157,7 +157,7 @@ async function distributeTokens(
     
     // Get signer for the contract
     const signer = await getSigner(provider);
-    console.log(`Utilisation du signer avec l'adresse: ${await signer.getAddress()}`);
+    console.log(`Using signer with address: ${await signer.getAddress()}`);
     
     // Create contract with signer
     const contract = isFromHolesky 
@@ -172,51 +172,51 @@ async function distributeTokens(
           signer
         );
     
-    // Obtenir l'adresse du token correspondant sur la chaîne de destination
+    // Get the corresponding token address on the destination chain
     const destinationToken = getCorrespondingToken(token, sourceChain);
     
     console.log(`Initiating distribution on ${isFromHolesky ? "target chain" : "holesky"}`);
     
-    // IMPORTANT: Utiliser 'from' comme destinataire final (l'adresse qui a fait le dépôt)
-    // au lieu de 'to' (l'adresse spécifiée dans le dépôt)
+    // IMPORTANT: Use 'from' as the final recipient (the address that made the deposit)
+    // instead of 'to' (the address specified in the deposit)
     const finalRecipient = from;
     
     console.log({
       sourceToken: token,
       destinationToken,
-      originalSender: from, // L'expéditeur original
-      originalRecipient: to, // Le destinataire spécifié dans le dépôt
-      finalRecipient: finalRecipient, // Le destinataire effectif de la distribution (expéditeur original)
+      originalSender: from, // The original sender
+      originalRecipient: to, // The recipient specified in the deposit
+      finalRecipient: finalRecipient, // The actual recipient of the distribution (original sender)
       amount,
       nonce,
       contractAddress: contract.target
     });
 
-    // Vérifier que l'adresse de destination est correcte et valide
+    // Verify that the destination address is correct and valid
     if (!ethers.isAddress(finalRecipient)) {
-      throw new Error(`L'adresse de destination '${finalRecipient}' n'est pas une adresse Ethereum valide`);
+      throw new Error(`Destination address '${finalRecipient}' is not a valid Ethereum address`);
     }
     
     console.log(`✅ Address validation check passed for recipient: ${finalRecipient}`);
 
-    // Vérifier si le token est supporté avant de tenter la distribution
+    // Check if the token is supported before attempting distribution
     console.log(`Checking if token ${destinationToken} is supported on destination chain...`);
     
-    // Essayer d'ajouter le token comme supporté avant la distribution
+    // Try to add the token as supported before distribution
     await addSupportedToken(destinationToken, contract);
     
     console.log("Proceeding with distribution...");
-    console.log(`IMPORTANT - Paramètres de distribution:
+    console.log(`IMPORTANT - Distribution parameters:
     - Token: ${destinationToken}
-    - Destinataire final (from): ${finalRecipient}
-    - Montant: ${amount}
+    - Final recipient (from): ${finalRecipient}
+    - Amount: ${amount}
     - Nonce: ${nonce}
     `);
 
-    // Call the distribute function on the bridge contract with le token de destination
+    // Call the distribute function on the bridge contract with the destination token
     const tx = await contract.distribute(
       destinationToken,
-      finalRecipient, // Utiliser l'adresse FROM comme destinataire final
+      finalRecipient, // Use the FROM address as the final recipient
       BigInt(amount),
       BigInt(nonce)
     );
@@ -240,8 +240,8 @@ async function distributeTokens(
     
     // Record distribution event
     await DistributionEvent.create({
-      token: destinationToken, // Utilisez le token de destination dans l'enregistrement
-      to: finalRecipient,     // Utiliser l'adresse FROM comme destinataire final dans l'événement
+      token: destinationToken, // Use the destination token in the record
+      to: finalRecipient,     // Use the FROM address as the final recipient in the event
       amount,
       nonce,
       chainId: isFromHolesky ? "target_chain" : "holesky",
@@ -252,12 +252,12 @@ async function distributeTokens(
   } catch (error) {
     console.error("Distribution failed:", error);
     
-    // Si l'erreur est à propos du token non supporté, afficher un message plus clair
+    // If the error is about the token not being supported, display a clearer message
     if (error instanceof Error && error.message.includes("token not supported")) {
-      console.log("\nERREUR: Le token n'est pas supporté sur le contrat Bridge.");
-      console.log("Vous devez manuellement ajouter le token comme 'supported' sur le contrat en appelant la fonction addSupportedToken avec l'adresse du token.");
+      console.log("\nERROR: The token is not supported on the Bridge contract.");
+      console.log("You must manually add the token as 'supported' on the contract by calling the addSupportedToken function with the token address.");
       console.log(`Token address: ${getCorrespondingToken(token, sourceChain)}`);
-      console.log("Utilisez cette fonction sur Etherscan ou via une autre interface pour ajouter le token.");
+      console.log("Use this function on Etherscan or via another interface to add the token.");
     }
     
     throw error;
@@ -275,7 +275,7 @@ async function processPendingDeposits() {
     });
     
     if (pendingDeposits.length === 0) {
-      console.log("Aucun dépôt en attente de traitement");
+      console.log("No pending deposits to process");
       return;
     }
     
@@ -305,7 +305,7 @@ async function processPendingDeposits() {
           
           if (hasConfirmations) {
             // Process the deposit by distributing tokens on the other chain
-            console.log(`Distribution vers ${deposit.from} (l'expéditeur du dépôt original)...`);
+            console.log(`Distribution to ${deposit.from} (the sender of the original deposit)...`);
             await distributeTokens(
               deposit.token,
               deposit.to,
@@ -323,7 +323,7 @@ async function processPendingDeposits() {
           console.log(`❓ Deposit ${deposit.nonce} is missing transaction hash, cannot verify confirmations`);
           console.log(`Marking as processed to avoid indefinite retries`);
           
-          // Marquer comme traité pour éviter des tentatives infinies
+          // Mark as processed to avoid infinite retries
           await DepositEvent.update(
             { processed: true },
             { where: { id: deposit.id } }
