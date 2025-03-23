@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "es2016", 
+    "module": "commonjs", 
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,    // Ajouté pour activer les décorateurs
+    "emitDecoratorMetadata": true,     // Ajouté pour émettre des métadonnées sur les décorateurs
+    "strict": true,                    
+    "skipLibCheck": true 
+  }
+}
